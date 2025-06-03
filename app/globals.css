@@ -1,41 +1,44 @@
+/* app/globals.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start2P&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Import a pixel font, e.g., from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
 html,
 body {
-    @apply bg-pixel-bg text-pixel-dark font-pixel;
+    @apply bg-pixel-blue-dark text-pixel-blue-dark font-pixel; /* <--- CHANGED THIS: text-pixel-blue-dark */
     margin: 0;
     padding: 0;
-    overflow-x: hidden; /* Prevent horizontal scroll due to pixel borders */
+    overflow-x: hidden;
+    height: 100%;
 }
 
-/* Base styles for pixelated elements */
+#__next {
+    height: 100%;
+}
+
+/* Base styles for pixelated elements - using @apply */
 input,
 button,
 select,
 textarea {
-    @apply font-pixel border-3 border-pixel-dark bg-pixel-light p-2 shadow-pixel-sm
-         focus:outline-none focus:ring-2 focus:ring-pixel-accent focus:shadow-pixel-md;
-    text-rendering: optimizeSpeed; /* Ensure sharp edges */
+    @apply font-pixel border-3 border-pixel-blue-medium bg-pixel-blue-frame p-2 shadow-pixel-inset-sm
+         focus:outline-none focus:ring-2 focus:ring-pixel-yellow focus:shadow-pixel-md;
+    text-rendering: optimizeSpeed;
+    @apply rounded-pixel-sm;
+    cursor: pointer;
+    @apply text-pixel-blue-dark; /* <--- ADDED THIS: Ensure input/select text is dark too */
 }
 
-button {
-    @apply cursor-pointer hover:bg-pixel-accent active:shadow-none active:translate-x-1 active:translate-y-1;
-}
-
-/* Custom class for pixel borders */
+/* Custom classes for pixel borders - using @apply */
 .pixel-border {
-    border: 3px solid #2c0c3c; /* pixel-dark */
-    box-shadow: 4px 4px 0px #2c0c3c; /* pixel-dark */
+    @apply border-3 border-pixel-blue-medium shadow-pixel-md rounded-pixel-sm;
 }
 
 .pixel-inset-border {
-    border: 3px inset #2c0c3c;
-    box-shadow: inset 2px 2px 0px #2c0c3c;
+    @apply border-3 border-pixel-blue-medium shadow-pixel-inset-sm rounded-pixel-sm;
 }
 
 /* Ensure images are pixelated when scaled */
@@ -44,8 +47,12 @@ img {
     image-rendering: pixelated;
 }
 
-/* Specific styles for Next.js Image component */
 .next-image-pixelated img {
     image-rendering: crisp-edges !important;
     image-rendering: pixelated !important;
+}
+
+/* Status bar header - using @apply */
+.status-bar-header {
+    @apply w-full flex justify-between items-center px-4 py-2 bg-pixel-blue-dark text-pixel-blue-text text-sm;
 }

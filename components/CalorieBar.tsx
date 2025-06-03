@@ -1,5 +1,5 @@
 // components/CalorieBar.tsx
-'use client' // <-- ADD THIS
+'use client'
 
 import React from 'react'
 
@@ -15,15 +15,19 @@ const CalorieBar: React.FC<CalorieBarProps> = ({ currentCalories, targetCalories
     return (
         <div className="w-full mb-6">
             <div className="text-center text-lg mb-2">
-                <span className="text-pixel-accent">{currentCalories}</span> / {targetCalories}{' '}
-                Calories Today
+                <span className="text-pixel-yellow">{currentCalories}</span> / {targetCalories}{' '}
+                Calories Today {/* Adjusted color */}
             </div>
-            <div className="w-full h-8 bg-pixel-dark border-3 border-pixel-dark shadow-pixel-sm overflow-hidden relative">
+            <div className="w-full h-8 bg-pixel-blue-medium border-3 border-pixel-blue-dark shadow-pixel-sm overflow-hidden relative">
+                {' '}
+                {/* Adjusted colors */}
                 <div
-                    className="h-full bg-pixel-green transition-all duration-500 ease-out"
+                    className="h-full bg-pixel-green-success transition-all duration-500 ease-out"
                     style={{ width: `${percentage}%` }}
                 ></div>
-                <div className="absolute inset-0 flex items-center justify-center text-pixel-bg text-sm">
+                <div className="absolute inset-0 flex items-center justify-center text-pixel-blue-text text-sm">
+                    {' '}
+                    {/* Adjusted text color */}
                     {percentage.toFixed(0)}% Done
                 </div>
             </div>

@@ -8,7 +8,7 @@ import PixelButton from '../../components/PixelButton'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import Image from 'next/image'
 import { useUserStore } from '../../store/userStore'
-import { FoodLogEntry } from '@prisma/client' // Import Prisma model type
+import { FoodLogEntry } from '@prisma/client'
 
 const UploadPage: React.FC = () => {
     const { data: session, status } = useSession()
@@ -26,7 +26,6 @@ const UploadPage: React.FC = () => {
             router.push('/login')
         }
         return () => {
-            // Clean up the object URL when component unmounts or file changes
             if (previewUrl) {
                 URL.revokeObjectURL(previewUrl)
             }
@@ -37,9 +36,9 @@ const UploadPage: React.FC = () => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0]
             setSelectedFile(file)
-            if (previewUrl) URL.revokeObjectURL(previewUrl) // Clean up previous preview
+            if (previewUrl) URL.revokeObjectURL(previewUrl)
             setPreviewUrl(URL.createObjectURL(file))
-            setAnalysisResult(null) // Reset analysis if new file is selected
+            setAnalysisResult(null)
             setError('')
         }
     }
@@ -63,7 +62,6 @@ const UploadPage: React.FC = () => {
 
         try {
             const res = await fetch('/api/food/upload', {
-                // Calls app/api/food/upload/route.ts
                 method: 'POST',
                 body: formData,
             })
@@ -74,19 +72,19 @@ const UploadPage: React.FC = () => {
             }
 
             setAnalysisResult(data.foodLog)
-            updateUserCalories(data.foodLog.totalCalories) // Update global state
+            updateUserCalories(data.foodLog.totalCalories)
 
             if (data.unlockedCats && data.unlockedCats.length > 0) {
-                data.unlockedCats.forEach((cat: any) => unlockNewCat(cat)) // Update global state
-                router.push('/unlocked') // Redirect to unlocked page
+                data.unlockedCats.forEach((cat: any) => unlockNewCat(cat))
+                router.push('/unlocked')
             }
         } catch (err: any) {
             console.error('Upload error:', err)
             setError(err.message || 'An unexpected error occurred during upload.')
         } finally {
             setLoading(false)
-            setSelectedFile(null) // Clear file input after upload
-            if (previewUrl) URL.revokeObjectURL(previewUrl) // Clean up preview URL
+            setSelectedFile(null)
+            if (previewUrl) URL.revokeObjectURL(previewUrl)
             setPreviewUrl(null)
         }
     }
@@ -97,7 +95,7 @@ const UploadPage: React.FC = () => {
 
     return (
         <div className="w-full text-center">
-            <h2 className="text-3xl text-pixel-dark mb-6">Upload Your Food</h2>
+            <h2 className="text-3xl text-pixel-blue-dark mb-6">Upload Your Food</h2>
 
             <div className="mb-6">
                 <input
@@ -109,9 +107,9 @@ const UploadPage: React.FC = () => {
                 />
                 <label
                     htmlFor="food-upload-input"
-                    className="block w-full h-48 border-3 border-dashed border-pixel-dark bg-pixel-medium
-                     flex items-center justify-center text-pixel-bg text-xl cursor-pointer
-                     hover:bg-pixel-dark transition-colors duration-200"
+                    className="block w-full h-48 border-3 border-dashed border-pixel-blue-medium bg-pixel-blue-medium 
+                     flex items-center justify-center text-pixel-blue-text text-xl cursor-pointer 
+                     hover:bg-pixel-blue-dark transition-colors duration-200 rounded-pixel-sm"
                 >
                     {previewUrl ? (
                         <Image
@@ -119,7 +117,6 @@ const UploadPage: React.FC = () => {
                             alt="Food preview"
                             width={200}
                             height={180}
-                            // layout="fixed" is deprecated, use width/height or fill with object-fit
                             className="object-contain next-image-pixelated max-h-full max-w-full"
                         />
                     ) : (
@@ -128,7 +125,7 @@ const UploadPage: React.FC = () => {
                 </label>
             </div>
 
-            {error && <p className="text-pixel-red mb-4">{error}</p>}
+            {error && <p className="text-pixel-red-error mb-4">{error}</p>}
 
             <PixelButton
                 onClick={handleUpload}
@@ -141,13 +138,13 @@ const UploadPage: React.FC = () => {
             {loading && <LoadingSpinner />}
 
             {analysisResult && (
-                <div className="mt-8 bg-pixel-bg pixel-border p-4 text-left">
-                    <h3 className="text-2xl text-pixel-dark mb-4">Analysis Results:</h3>
+                <div className="mt-8 bg-pixel-blue-medium pixel-border p-4 text-left">
+                    <h3 className="text-2xl text-pixel-blue-text mb-4">Analysis Results:</h3>
                     {(analysisResult.detectedFoods as any[]).length > 0 ? (
                         <ul>
                             {(analysisResult.detectedFoods as any[]).map(
                                 (food: any, index: number) => (
-                                    <li key={index} className="text-pixel-dark mb-2">
+                                    <li key={index} className="text-pixel-blue-text mb-2">
                                         <span className="font-bold">{food.name}:</span>{' '}
                                         {food.calories} kcal (P:{food.protein}g, C:{food.carbs}g, F:
                                         {food.fat}g)
@@ -156,13 +153,13 @@ const UploadPage: React.FC = () => {
                             )}
                         </ul>
                     ) : (
-                        <p className="text-pixel-dark">
+                        <p className="text-pixel-blue-text">
                             No specific food items detected. Total calories below.
                         </p>
                     )}
-                    <p className="text-pixel-dark font-bold text-xl mt-4">
+                    <p className="text-pixel-blue-text font-bold text-xl mt-4">
                         Total Calories:{' '}
-                        <span className="text-pixel-accent">
+                        <span className="text-pixel-yellow">
                             {analysisResult.totalCalories} kcal
                         </span>
                     </p>
