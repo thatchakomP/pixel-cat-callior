@@ -1,0 +1,61 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Or "mongodb" if you prefer and configure it correctly
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String      @id @default(uuid())
+  email                 String      @unique
+  password              String      // Hashed password
+  name                  String?
+  age                   Int?
+  gender                String?
+  heightCm              Int?        // Stored in cm
+  weightKg              Float?      // Stored in kg
+  bmi                   Float?
+  goals                 String[]    // e.g., ["be slimmer", "reduce carbohydrate"]
+  dailyCalorieTarget    Int?        // Calculated based on BMI and goals
+  currentCaloriesToday  Int         @default(0) // Reset daily by a cron job/scheduled task
+  totalLifetimeCalories Int         @default(0) // Total accumulated calories
+  
+  activeCatId           String?
+  activeCat             Cat?        @relation("UserActiveCat", fields: [activeCatId], references: [id], onDelete: SetNull)
+  unlockedCats          Cat[]       @relation("UserUnlockedCats") // Many-to-many relationship
+  
+  foodLogEntries        FoodLogEntry[]
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+}
+
+model Cat {
+  id                    String      @id @default(uuid())
+  name                  String?     // e.g., "Slim Cat", "Muscle Max Cat"
+  imageUrl              String      // URL of the generated pixel art cat image
+  bodyType              String      // e.g., "slim", "normal", "fat", "obese"
+  descriptionPrompt     String      // The prompt used for AI generation
+  unlockCriteria        Json        // e.g., { "totalCalories": 10000, "goalMatch": ["increase protein"], "bmiTarget": "normal" }
+  isDefault             Boolean     @default(false) // For the initial cat
+  
+  // Relations
+  usersActive           User[]      @relation("UserActiveCat")
+  usersUnlocked         User[]      @relation("UserUnlockedCats")
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+}
+
+model FoodLogEntry {
+  id                    String      @id @default(uuid())
+  userId                String
+  user                  User        @relation(fields: [userId], references: [id])
+  imageUrl              String      // URL of the uploaded food image
+  detectedFoods         Json        // e.g., [{ name: "Apple", calories: 95, protein: 0.5, carbs: 25, fat: 0.3 }]
+  totalCalories         Int
+  loggedAt              DateTime    @default(now())
+}

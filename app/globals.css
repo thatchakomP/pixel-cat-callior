@@ -1,26 +1,51 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Import a pixel font, e.g., from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    @apply bg-pixel-bg text-pixel-dark font-pixel;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevent horizontal scroll due to pixel borders */
+}
+
+/* Base styles for pixelated elements */
+input,
+button,
+select,
+textarea {
+    @apply font-pixel border-3 border-pixel-dark bg-pixel-light p-2 shadow-pixel-sm
+         focus:outline-none focus:ring-2 focus:ring-pixel-accent focus:shadow-pixel-md;
+    text-rendering: optimizeSpeed; /* Ensure sharp edges */
+}
+
+button {
+    @apply cursor-pointer hover:bg-pixel-accent active:shadow-none active:translate-x-1 active:translate-y-1;
+}
+
+/* Custom class for pixel borders */
+.pixel-border {
+    border: 3px solid #2c0c3c; /* pixel-dark */
+    box-shadow: 4px 4px 0px #2c0c3c; /* pixel-dark */
+}
+
+.pixel-inset-border {
+    border: 3px inset #2c0c3c;
+    box-shadow: inset 2px 2px 0px #2c0c3c;
+}
+
+/* Ensure images are pixelated when scaled */
+img {
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
+/* Specific styles for Next.js Image component */
+.next-image-pixelated img {
+    image-rendering: crisp-edges !important;
+    image-rendering: pixelated !important;
 }
