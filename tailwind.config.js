@@ -9,7 +9,7 @@ const config = {
     theme: {
         extend: {
             fontFamily: {
-                pixel: ['"Press Start 2P"', 'cursive'],
+                pixel: ['"VT323"', 'monospace'],
             },
             colors: {
                 // Your custom pixel palette - THESE MUST BE EXACTLY AS DEFINED

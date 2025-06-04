@@ -1,32 +1,28 @@
 // app/api/user/onboard/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt' // <--- NEW IMPORT for server-side session in v4
+import { getToken } from 'next-auth/jwt'
 
-import prisma from '../../../../lib/prisma' // Adjust path
+import prisma from '../../../../lib/prisma'
 import {
     calculateBMI,
     getBMICategory,
     calculateDailyCalorieTarget,
     generateCatPrompt,
-} from '../../../../lib/utils' // Adjust path
-import { mockGenerateCat } from '../../../../lib/aiService' // Adjust path
+} from '../../../../lib/utils'
+import { generateCatWithReplicate } from '../../../../lib/aiService'
 
-// Define the secret for JWT token verification
 const secret = process.env.NEXTAUTH_SECRET
 
 export async function POST(request: NextRequest) {
-    // Use getToken to retrieve the JWT token from the request
     const token = await getToken({ req: request, secret: secret })
-
-    // If no token, or token does not contain user ID, consider as unauthenticated
     if (!token || !token.id) {
-        // token.id should be set in jwt callback in lib/auth.ts
         return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
     }
 
-    const { userId, name, age, gender, heightCm, weightKg, goals } = await request.json()
+    const userId = token.id as string
 
-    // Basic validation
+    const { name, age, gender, heightCm, weightKg, goals } = await request.json()
+
     if (
         !userId ||
         !name ||
@@ -43,7 +39,6 @@ export async function POST(request: NextRequest) {
         )
     }
 
-    // Ensure the userId from the request body matches the authenticated user's ID
     if (userId !== token.id) {
         return NextResponse.json({ message: 'Unauthorized: User ID mismatch.' }, { status: 403 })
     }
@@ -54,12 +49,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'User not found.' }, { status: 404 })
         }
 
-        // Optional: Check if user is already onboarded (has an active cat) to prevent re-onboarding
         if (user.activeCatId) {
             return NextResponse.json({ message: 'User already onboarded.' }, { status: 409 })
         }
 
-        // 1. Calculate BMI & Daily Calorie Target
         const bmi = calculateBMI(weightKg, heightCm)
         const bmiCategory = getBMICategory(bmi)
         const dailyCalorieTarget = calculateDailyCalorieTarget(
@@ -70,25 +63,28 @@ export async function POST(request: NextRequest) {
             goals
         )
 
-        // 2. Generate AI Cat Prompt
         const catPrompt = generateCatPrompt(bmiCategory, goals)
 
-        // 3. Call AI Service for Cat Image (using mock for now)
-        const { imageUrl: catImageUrl } = await mockGenerateCat(catPrompt)
+        // --- Call Replicate Service for Cat Image ---
+        const replicateResponse = await generateCatWithReplicate(catPrompt)
+        const catImageUrl = String(replicateResponse.imageUrl) // <--- EXPLICITLY CONVERT TO STRING HERE
 
-        // 4. Create the initial Cat entry in DB
+        // --- DEBUG LOG ---
+        console.log('DEBUG: Value of catImageUrl before Prisma create:', catImageUrl)
+        console.log('DEBUG: Type of catImageUrl before Prisma create:', typeof catImageUrl)
+        // --- END DEBUG LOG ---
+
         const initialCat = await prisma.cat.create({
             data: {
-                name: `${bmiCategory.charAt(0).toUpperCase() + bmiCategory.slice(1)} Cat`, // Simple name
-                imageUrl: catImageUrl,
+                name: `${bmiCategory.charAt(0).toUpperCase() + bmiCategory.slice(1)} Cat`,
+                imageUrl: catImageUrl, // This will now be a guaranteed string
                 bodyType: bmiCategory,
                 descriptionPrompt: catPrompt,
-                isDefault: true, // Mark as initial cat
-                unlockCriteria: {}, // No unlock criteria for default cat
+                isDefault: true,
+                unlockCriteria: {},
             },
         })
 
-        // 5. Update User Profile & set active cat
         const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: {
@@ -102,22 +98,36 @@ export async function POST(request: NextRequest) {
                 dailyCalorieTarget: Math.round(dailyCalorieTarget),
                 activeCatId: initialCat.id,
                 unlockedCats: {
-                    connect: { id: initialCat.id }, // Connect the initial cat to unlocked cats
+                    connect: { id: initialCat.id },
                 },
             },
             include: {
-                activeCat: true, // Include active cat in response
-                unlockedCats: true, // Include unlocked cats in response
+                activeCat: true,
+                unlockedCats: true,
             },
         })
 
-        const { password: _, ...userWithoutPassword } = updatedUser // Exclude password from response
+        const { password: _, ...userWithoutPassword } = updatedUser
         return NextResponse.json(
             { message: 'Onboarding complete!', user: userWithoutPassword },
             { status: 200 }
         )
-    } catch (error) {
-        console.error('Onboarding error:', error)
-        return NextResponse.json({ message: 'Failed to complete onboarding.' }, { status: 500 })
+    } catch (error: unknown) {
+        let errorMessage = 'An unknown error occurred.'
+        if (error instanceof Error) {
+            errorMessage = error.message
+        } else if (
+            typeof error === 'object' &&
+            error !== null &&
+            'message' in error &&
+            typeof (error as any).message === 'string'
+        ) {
+            errorMessage = (error as any).message
+        }
+        console.error('Onboarding error during Replicate generation or DB update:', error)
+        return NextResponse.json(
+            { message: `Failed to complete onboarding: ${errorMessage}` },
+            { status: 500 }
+        )
     }
 }

@@ -1,6 +1,6 @@
 /* app/globals.css */
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,7 +8,8 @@
 
 html,
 body {
-    @apply bg-pixel-blue-dark text-pixel-blue-dark font-pixel; /* <--- CHANGED THIS: text-pixel-blue-dark */
+    @apply bg-pixel-blue-dark text-pixel-blue-dark font-pixel;
+    font-family: 'VT323', monospace;
     margin: 0;
     padding: 0;
     overflow-x: hidden;
@@ -24,6 +25,7 @@ input,
 button,
 select,
 textarea {
+    font-family: 'VT323', monospace;
     @apply font-pixel border-3 border-pixel-blue-medium bg-pixel-blue-frame p-2 shadow-pixel-inset-sm
          focus:outline-none focus:ring-2 focus:ring-pixel-yellow focus:shadow-pixel-md;
     text-rendering: optimizeSpeed;

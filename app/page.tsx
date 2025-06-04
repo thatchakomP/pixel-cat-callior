@@ -73,7 +73,7 @@ const HomePage: React.FC = () => {
     console.log('HomePage: Rendering main content with user and active cat.')
     return (
         <div className="w-full text-center">
-            <h2 className="text-3xl text-pixel-blue-text mb-4">Hello, {user.name || 'Trainer'}!</h2>{' '}
+            <h2 className="text-3xl text-pixel-blue-dark mb-4">Hello, {user.name || 'Trainer'}!</h2>{' '}
             {/* Adjusted text color */}
             <CatDisplay imageUrl={user.activeCat.imageUrl} name={user.activeCat.name} />
             <CalorieBar
