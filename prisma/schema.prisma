@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // Or "mongodb" if you prefer and configure it correctly
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -25,7 +25,7 @@ model User {
   
   activeCatId           String?
   activeCat             Cat?        @relation("UserActiveCat", fields: [activeCatId], references: [id], onDelete: SetNull)
-  unlockedCats          Cat[]       @relation("UserUnlockedCats") // Many-to-many relationship
+  unlockedCats          Cat[]       @relation("UserUnlockedCats")
   
   foodLogEntries        FoodLogEntry[]
 
@@ -35,14 +35,13 @@ model User {
 
 model Cat {
   id                    String      @id @default(uuid())
-  name                  String?     // e.g., "Slim Cat", "Muscle Max Cat"
-  imageUrl              String      // URL of the generated pixel art cat image
-  bodyType              String      // e.g., "slim", "normal", "fat", "obese"
-  descriptionPrompt     String      // The prompt used for AI generation
-  unlockCriteria        Json        // e.g., { "totalCalories": 10000, "goalMatch": ["increase protein"], "bmiTarget": "normal" }
-  isDefault             Boolean     @default(false) // For the initial cat
+  name                  String?
+  videoUrl              String      // <--- THIS IS THE FIELD FOR THE VIDEO URL
+  bodyType              String
+  descriptionPrompt     String
+  unlockCriteria        Json
+  isDefault             Boolean     @default(false)
   
-  // Relations
   usersActive           User[]      @relation("UserActiveCat")
   usersUnlocked         User[]      @relation("UserUnlockedCats")
 
@@ -54,8 +53,8 @@ model FoodLogEntry {
   id                    String      @id @default(uuid())
   userId                String
   user                  User        @relation(fields: [userId], references: [id])
-  imageUrl              String      // URL of the uploaded food image
-  detectedFoods         Json        // e.g., [{ name: "Apple", calories: 95, protein: 0.5, carbs: 25, fat: 0.3 }]
+  imageUrl              String      // This remains imageUrl, as it's for the static food photo
+  detectedFoods         Json
   totalCalories         Int
   loggedAt              DateTime    @default(now())
 }

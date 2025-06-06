@@ -8,8 +8,9 @@ import {
     getBMICategory,
     calculateDailyCalorieTarget,
     generateCatPrompt,
-} from '../../../../lib/utils'
-import { generateCatWithReplicate } from '../../../../lib/aiService'
+    generateAnimationPrompt,
+} from '../../../../lib/utils' // NEW: generateAnimationPrompt
+import { generateStaticPixelCat, generateAnimatedPixelCat } from '../../../../lib/aiService' // NEW: Both generation functions
 
 const secret = process.env.NEXTAUTH_SECRET
 
@@ -64,20 +65,52 @@ export async function POST(request: NextRequest) {
         )
 
         const catPrompt = generateCatPrompt(bmiCategory, goals)
+        const catNameForPrompt = `${bmiCategory.charAt(0).toUpperCase() + bmiCategory.slice(1)} Cat` // For animation prompt
 
-        // --- Call Replicate Service for Cat Image ---
-        const replicateResponse = await generateCatWithReplicate(catPrompt)
-        const catImageUrl = String(replicateResponse.imageUrl) // <--- EXPLICITLY CONVERT TO STRING HERE
+        let finalVideoUrl: string = ''
 
-        // --- DEBUG LOG ---
-        console.log('DEBUG: Value of catImageUrl before Prisma create:', catImageUrl)
-        console.log('DEBUG: Type of catImageUrl before Prisma create:', typeof catImageUrl)
-        // --- END DEBUG LOG ---
+        try {
+            // --- STAGE 1: Generate the STATIC pixel art image ---
+            console.log(
+                `[Onboard] Attempting to generate STATIC image for initial cat: "${catPrompt}"`
+            )
+            const { imageUrl: staticGeneratedImageUrl } = await generateStaticPixelCat(catPrompt)
 
+            // --- STAGE 2: Animate the STATIC image ---
+            const animationPrompt = generateAnimationPrompt(catNameForPrompt, goals)
+            console.log(
+                `[Onboard] Attempting to generate VIDEO for initial cat using static image: "${staticGeneratedImageUrl}" and animation prompt: "${animationPrompt}"`
+            )
+            const { videoUrl } = await generateAnimatedPixelCat(
+                staticGeneratedImageUrl,
+                animationPrompt
+            )
+            finalVideoUrl = String(videoUrl) // Explicitly ensure it's a string
+
+            console.log(`[Onboard] Initial cat video generated successfully: ${finalVideoUrl}`)
+        } catch (genError: unknown) {
+            let errorMessage = 'Failed to generate initial cat video.'
+            if (genError instanceof Error) {
+                errorMessage = genError.message
+            } else if (
+                typeof genError === 'object' &&
+                genError !== null &&
+                'message' in genError &&
+                typeof (genError as any).message === 'string'
+            ) {
+                errorMessage = (genError as any).message
+            }
+            console.error(`[Onboard] ERROR generating initial cat video: ${errorMessage}`)
+            // Fallback: If AI generation fails, provide a generic static image
+            finalVideoUrl = '/cats/cat-normal.png' // Fallback to a local static image
+            console.warn(`[Onboard] Falling back to default static image: ${finalVideoUrl}`)
+        }
+
+        // --- Store the generated (or fallback) video URL ---
         const initialCat = await prisma.cat.create({
             data: {
-                name: `${bmiCategory.charAt(0).toUpperCase() + bmiCategory.slice(1)} Cat`,
-                imageUrl: catImageUrl, // This will now be a guaranteed string
+                name: catNameForPrompt,
+                videoUrl: finalVideoUrl,
                 bodyType: bmiCategory,
                 descriptionPrompt: catPrompt,
                 isDefault: true,
@@ -113,7 +146,7 @@ export async function POST(request: NextRequest) {
             { status: 200 }
         )
     } catch (error: unknown) {
-        let errorMessage = 'An unknown error occurred.'
+        let errorMessage = 'An unknown error occurred during onboarding process.'
         if (error instanceof Error) {
             errorMessage = error.message
         } else if (
@@ -124,7 +157,7 @@ export async function POST(request: NextRequest) {
         ) {
             errorMessage = (error as any).message
         }
-        console.error('Onboarding error during Replicate generation or DB update:', error)
+        console.error('Onboarding main catch error:', error)
         return NextResponse.json(
             { message: `Failed to complete onboarding: ${errorMessage}` },
             { status: 500 }

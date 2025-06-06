@@ -24,7 +24,7 @@ CREATE TABLE "User" (
 CREATE TABLE "Cat" (
     "id" TEXT NOT NULL,
     "name" TEXT,
-    "imageUrl" TEXT NOT NULL,
+    "videoUrl" TEXT NOT NULL,
     "bodyType" TEXT NOT NULL,
     "descriptionPrompt" TEXT NOT NULL,
     "unlockCriteria" JSONB NOT NULL,

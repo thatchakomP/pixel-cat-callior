@@ -4,6 +4,7 @@
 import React, { useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+
 import CatDisplay from '../components/CatDisplay'
 import CalorieBar from '../components/CalorieBar'
 import PixelButton from '../components/PixelButton'
@@ -64,25 +65,27 @@ const HomePage: React.FC = () => {
             'HomePage: Render fallback: user or activeCat is missing, but not in initial loading state.'
         )
         return (
-            <p className="text-pixel-blue-text text-center">
+            <p className="text-pixel-blue-dark text-center">
                 No cat found. Something went wrong or onboarding is incomplete.
             </p>
-        ) // Adjusted text color
+        )
     }
 
     console.log('HomePage: Rendering main content with user and active cat.')
     return (
         <div className="w-full text-center">
-            <h2 className="text-3xl text-pixel-blue-dark mb-4">Hello, {user.name || 'Trainer'}!</h2>{' '}
-            {/* Adjusted text color */}
-            <CatDisplay imageUrl={user.activeCat.imageUrl} name={user.activeCat.name} />
+            <h2 className="text-3xl text-pixel-blue-dark mb-4">Hello, {user.name || 'Trainer'}!</h2>
+
+            {/* --- CHANGED: Pass videoUrl to CatDisplay --- */}
+            <CatDisplay videoUrl={user.activeCat.videoUrl} name={user.activeCat.name} />
+
             <CalorieBar
                 currentCalories={user.currentCaloriesToday}
                 targetCalories={user.dailyCalorieTarget || 2000}
             />
+
             {user.nextUnlockCat && user.nextUnlockCat.unlockCriteria && (
-                // Adjusted background and text colors
-                <div className="text-pixel-blue-text text-lg mt-4 mb-6 bg-pixel-blue-medium pixel-border p-3">
+                <div className="text-pixel-blue-dark text-lg mt-4 mb-6 bg-pixel-blue-medium pixel-border p-3">
                     <p className="font-bold mb-1">Next Unlock Goal:</p>
                     {(user.nextUnlockCat.unlockCriteria as any).totalCalories && (
                         <p>
@@ -111,13 +114,14 @@ const HomePage: React.FC = () => {
                     )}
                     <p className="text-sm text-pixel-blue-frame mt-2">
                         To unlock: "{user.nextUnlockCat.name}"
-                    </p>{' '}
-                    {/* Adjusted text color */}
+                    </p>
                 </div>
             )}
+
             <PixelButton onClick={() => router.push('/upload')} className="w-full">
                 Upload Food Photo
             </PixelButton>
+
             {user.unlockedCats.length > 1 && (
                 <PixelButton
                     variant="secondary"

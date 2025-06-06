@@ -1,7 +1,12 @@
 // lib/utils.ts
 import { User, Cat } from '@prisma/client' // Import Prisma model types
 import prisma from './prisma' // Import your Prisma Client instance
-import { generateCatWithReplicate } from './aiService' // Import the Replicate AI service for cat generation
+// Import BOTH Replicate AI generation functions for the two-stage pipeline
+import { generateStaticPixelCat, generateAnimatedPixelCat } from './aiService'
+
+// Define and EXPORT the BMICategoryType alias at the very top.
+// This makes it available for use as a type throughout this file and for external imports.
+export type BMICategoryType = 'slim' | 'normal' | 'fat' | 'obese'
 
 /**
  * Calculates the Body Mass Index (BMI).
@@ -18,9 +23,10 @@ export const calculateBMI = (weightKg: number, heightCm: number): number => {
 /**
  * Determines the BMI category based on the calculated BMI value.
  * @param bmi The calculated BMI.
- * @returns A string representing the BMI category.
+ * @returns A string representing the BMI category (from BMICategoryType).
  */
-export const getBMICategory = (bmi: number): 'slim' | 'normal' | 'fat' | 'obese' => {
+export const getBMICategory = (bmi: number): BMICategoryType => {
+    // Uses the exported type alias
     if (bmi < 18.5) return 'slim'
     if (bmi >= 18.5 && bmi < 24.9) return 'normal'
     if (bmi >= 25 && bmi < 29.9) return 'fat'
@@ -30,14 +36,15 @@ export const getBMICategory = (bmi: number): 'slim' | 'normal' | 'fat' | 'obese'
 /**
  * Calculates the estimated daily calorie target based on user's demographic data and goals.
  * Uses a simplified Mifflin-St Jeor Equation for Basal Metabolic Rate (BMR) and a sedentary activity level.
- * @param gender User's gender ('male' or 'female').
- * @param age User's age in years.
- * @param heightCm User's height in centimeters.
- * @param weightKg User's weight in kilograms.
- * @param goals An array of user's health goals (e.g., "be slimmer", "increase protein").
+ * @param gender User's gender.
+ * @param age User's age.
+ * @param heightCm User's height.
+ * @param weightKg User's weight.
+ * @param goals An array of user's health goals.
  * @returns The estimated daily calorie target.
  */
 export const calculateDailyCalorieTarget = (
+    // Correctly exported
     gender: string,
     age: number,
     heightCm: number,
@@ -69,14 +76,15 @@ export const calculateDailyCalorieTarget = (
 }
 
 /**
- * Generates a descriptive prompt string for AI image generation services (like Replicate/DALL-E)
- * based on the user's BMI category and health goals.
- * @param bmiCategory The user's BMI category ('slim', 'normal', 'fat', 'obese').
+ * Generates a descriptive prompt string for AI image generation services (like Replicate)
+ * for the STATIC cat image, based on the user's BMI category and health goals.
+ * @param bmiCategory The user's BMI category (uses BMICategoryType).
  * @param goals An array of user's health goals.
- * @returns A string prompt for the AI image generation.
+ * @returns A string prompt for the static AI image generation.
  */
 export const generateCatPrompt = (
-    bmiCategory: ReturnType<typeof getBMICategory>,
+    // Correctly exported
+    bmiCategory: BMICategoryType, // Uses the exported type alias
     goals: string[]
 ): string => {
     let bodyDesc = ''
@@ -102,27 +110,50 @@ export const generateCatPrompt = (
     if (goals.includes('increase protein')) goalDesc += ' building muscle, strong, '
     if (goals.includes('maintain weight')) goalDesc += ' balanced, serene, '
 
+    // Prompt components for the STATIC cat image
     let cuteDesc =
-        'cute, adorable, happy, smiling, joyful expression, chibi style, small body, big head, rounded features, one paw raised'
+        'cute, adorable, happy, smiling, joyful expression, chibi style, small body, big head, rounded features'
     let colorDesc = 'orange tabby cat'
+    let poseDesc = 'sitting, front view, one paw raised'
 
-    // The core prompt components are combined. Replicate handles the "pixel art" styling itself.
-    return `${bodyDesc} ${colorDesc}, ${goalDesc.trim()}, ${cuteDesc}, simple background.`
+    return `${bodyDesc} ${colorDesc}, ${goalDesc.trim()}, ${cuteDesc}, ${poseDesc}.`
+}
+
+/**
+ * Generates a descriptive prompt string for the animation aspect of the AI video generation.
+ * This is used for the second stage of the AI pipeline (animating the static image).
+ * @param catName The name of the cat (for context in the prompt).
+ * @param goals An array of user's health goals (to influence animation style).
+ * @returns A string prompt for the AI video generation's animation aspect.
+ */
+export const generateAnimationPrompt = (catName: string, goals: string[]): string => {
+    // Correctly exported
+    if (goals.includes('increase protein')) {
+        return 'lifting a small dumbbell repeatedly'
+    }
+    if (goals.includes('be slimmer')) {
+        return 'doing a quick jump in place'
+    }
+    if (goals.includes('reduce carbohydrate')) {
+        return 'doing a vigorous head shake'
+    }
+    // Default animation prompt
+    return 'simple happy idle movement, wagging tail, blinking eyes'
 }
 
 /**
  * Checks if the user's currentCaloriesToday needs to be reset to 0 based on the last update date.
  * This is crucial for daily tracking.
- * @param user The user object including the 'updatedAt' field.
+ * @param user The user object including the 'updatedAt' field and required relations.
  * @returns The user object with 'currentCaloriesToday' reset to 0 if a new day has started, otherwise the original user object.
  */
 export const resetDailyCaloriesIfNewDay = (
     user: User & { activeCat: Cat | null; unlockedCats: Cat[] }
 ): User & { activeCat: Cat | null; unlockedCats: Cat[] } => {
-    const lastUpdateDate = user.updatedAt // Timestamp of the last user update from Prisma
-    const today = new Date() // Current date and time
+    // Correctly exported
+    const lastUpdateDate = user.updatedAt
+    const today = new Date()
 
-    // Get UTC components for a reliable day-by-day comparison, avoiding timezone issues
     const lastUpdateYearUTC = lastUpdateDate.getUTCFullYear()
     const lastUpdateMonthUTC = lastUpdateDate.getUTCMonth()
     const lastUpdateDayUTC = lastUpdateDate.getUTCDate()
@@ -131,15 +162,13 @@ export const resetDailyCaloriesIfNewDay = (
     const todayMonthUTC = today.getUTCMonth()
     const todayDayUTC = today.getUTCDate()
 
-    // Determine if the UTC date has changed since the last update
     const needsReset =
-        lastUpdateYearUTC < todayYearUTC || // Different year
-        (lastUpdateYearUTC === todayYearUTC && lastUpdateMonthUTC < todayMonthUTC) || // Same year, different month
+        lastUpdateYearUTC < todayYearUTC ||
+        (lastUpdateYearUTC === todayYearUTC && lastUpdateMonthUTC < todayMonthUTC) ||
         (lastUpdateYearUTC === todayYearUTC &&
             lastUpdateMonthUTC === todayMonthUTC &&
-            lastUpdateDayUTC < todayDayUTC) // Same year/month, different day
+            lastUpdateDayUTC < todayDayUTC)
 
-    // --- DEBUG LOGS FOR RESET ---
     console.log('--- DEBUG: Daily Reset Check (Start) ---')
     console.log(`  User ID: ${user.id}`)
     console.log(`  Last Updated At (UTC): ${lastUpdateDate.toISOString()}`)
@@ -153,13 +182,13 @@ export const resetDailyCaloriesIfNewDay = (
 
     if (needsReset) {
         console.log(`  >>> RESETTING currentCaloriesToday for user ${user.id} <<<`)
-        return { ...user, currentCaloriesToday: 0 } // Return a new object with calories reset
+        return { ...user, currentCaloriesToday: 0 }
     }
     console.log(
         `  No reset needed for user ${user.id}. Current Calories Today: ${user.currentCaloriesToday}`
     )
     console.log('--- DEBUG: Daily Reset Check (End) ---')
-    return user // Return the original user object if no reset is necessary
+    return user
 }
 
 /**
@@ -169,52 +198,48 @@ export const resetDailyCaloriesIfNewDay = (
  * @returns The next Cat object to unlock, or null if all cats are unlocked.
  */
 export const findNextUnlockableCat = (
+    // Correctly exported
     user: User & { unlockedCats: Cat[] },
     allUnlockableCats: Cat[]
 ): Cat | null => {
-    // Create a Set for efficient lookup of already unlocked cat IDs
     const alreadyUnlockedIds = new Set(user.unlockedCats.map((cat) => cat.id))
 
-    // Filter out cats that are default or already unlocked by the user
     const availableCats = allUnlockableCats.filter(
         (cat) => !cat.isDefault && !alreadyUnlockedIds.has(cat.id)
     )
 
     if (availableCats.length === 0) {
-        return null // No more cats left to unlock
+        return null
     }
 
-    // Sort available cats primarily by their 'totalCalories' unlock criteria for progression.
-    // Cats with lower total calorie requirements will appear first.
     availableCats.sort((a, b) => {
-        const aTotal = (a.unlockCriteria as any)?.totalCalories || Infinity // Treat missing criteria as very high
+        const aTotal = (a.unlockCriteria as any)?.totalCalories || Infinity
         const bTotal = (b.unlockCriteria as any)?.totalCalories || Infinity
 
         if (aTotal !== bTotal) {
-            return aTotal - bTotal // Sort ascending by totalCalories
+            return aTotal - bTotal
         }
-        // If totalCalories are the same, sort alphabetically by name for consistent order
         return (a.name || '').localeCompare(b.name || '')
     })
 
-    // The first cat in the sorted list is the "next" one the user is working towards
     return availableCats[0]
 }
 
 /**
  * Checks if the user has met the criteria to unlock new virtual cat characters.
- * If criteria are met, it generates the cat's image via Replicate and updates the database.
+ * If criteria are met, it performs a two-stage AI generation (static image then animation)
+ * and updates the database with the generated video URL.
  * @param userId The ID of the current user.
  * @param user The current user object, including their updated progress metrics and unlocked cats.
  * @returns An array of Cat objects that were newly unlocked during this check.
  */
 export const checkAndUnlockNewCats = async (
+    // Correctly exported
     userId: string,
     user: User & { unlockedCats: Cat[] }
 ): Promise<Cat[]> => {
-    const newlyUnlockedCats: Cat[] = [] // Collects cats that are unlocked in this specific check
+    const newlyUnlockedCats: Cat[] = []
 
-    // --- DEBUG LOGS ---
     console.log('--- DEBUG: checkAndUnlockNewCats (Start) ---')
     console.log('  User ID being checked:', userId)
     console.log(
@@ -229,11 +254,10 @@ export const checkAndUnlockNewCats = async (
     }
     console.log('--- END DEBUG: checkAndUnlockNewCats (Start) ---')
 
-    // Fetch all potential unlockable cats that the user has NOT yet unlocked
     const potentialNewCats = await prisma.cat.findMany({
         where: {
-            isDefault: false, // Exclude the default cat
-            id: { notIn: user.unlockedCats.map((cat) => cat.id) }, // Exclude already unlocked cats
+            isDefault: false,
+            id: { notIn: user.unlockedCats.map((cat) => cat.id) },
         },
     })
 
@@ -242,17 +266,13 @@ export const checkAndUnlockNewCats = async (
         potentialNewCats.map((cat) => cat.name || cat.id)
     )
 
-    // Iterate through each potential new cat to check if criteria are met
     for (const cat of potentialNewCats) {
-        const criteria = cat.unlockCriteria as any // Cast to 'any' for flexible JSON access
-        let meetsCriteria = true // Assume met until proven otherwise
+        const criteria = cat.unlockCriteria as any
+        let meetsCriteria = true
 
-        // --- DEBUG LOG: Checking individual cat ---
         console.log(`  --- Checking cat: ${cat.name || cat.id} ---`)
         console.log("    Cat's unlock criteria:", criteria)
-        // --- END DEBUG LOGS ---
 
-        // Check against total lifetime calories criteria
         if (criteria.totalCalories) {
             if (user.totalLifetimeCalories < criteria.totalCalories) {
                 meetsCriteria = false
@@ -266,7 +286,6 @@ export const checkAndUnlockNewCats = async (
             }
         }
 
-        // Check against goal match criteria (user must have ALL specified goals)
         if (
             meetsCriteria &&
             criteria.goalMatch &&
@@ -286,7 +305,6 @@ export const checkAndUnlockNewCats = async (
             }
         }
 
-        // Check against BMI target criteria
         if (meetsCriteria && criteria.bmiTarget && user.bmi) {
             const currentBMICategory = getBMICategory(user.bmi)
             if (currentBMICategory !== criteria.bmiTarget) {
@@ -299,50 +317,58 @@ export const checkAndUnlockNewCats = async (
             }
         }
 
-        // If all criteria for this cat are met
         if (meetsCriteria) {
             console.log(`    >>> UNLOCK CONDITION MET for: ${cat.name || cat.id} <<<`)
 
-            let generatedImageUrl: string = ''
+            let generatedVideoUrl: string = ''
             try {
-                // --- Call Replicate to generate image for this unlocked cat ---
+                // --- STAGE 1: Generate the STATIC pixel art image ---
                 console.log(
-                    `    Attempting to generate image for "${cat.name}" with prompt: "${cat.descriptionPrompt}"`
+                    `    Attempting to generate STATIC image for "${cat.name}" with prompt: "${cat.descriptionPrompt}"`
                 )
-                const { imageUrl } = await generateCatWithReplicate(cat.descriptionPrompt)
-                generatedImageUrl = String(imageUrl) // Explicitly convert to string to prevent ReadableStream issue
-                console.log(
-                    `    Image generated successfully for "${cat.name}": ${generatedImageUrl}`
+                const { imageUrl: staticGeneratedImageUrl } = await generateStaticPixelCat(
+                    cat.descriptionPrompt
                 )
 
-                // Update the Cat record in the database with the newly generated image URL
+                // --- STAGE 2: Animate the STATIC image ---
+                const animationPrompt = generateAnimationPrompt(cat.name || 'default', user.goals)
+                console.log(
+                    `    Attempting to generate VIDEO for "${cat.name}" using static image: "${staticGeneratedImageUrl}" and animation prompt: "${animationPrompt}"`
+                )
+                const { videoUrl } = await generateAnimatedPixelCat(
+                    staticGeneratedImageUrl,
+                    animationPrompt
+                )
+                generatedVideoUrl = String(videoUrl) // Explicitly ensure it's a string
+
+                console.log(
+                    `    Video generated successfully for "${cat.name}": ${generatedVideoUrl}`
+                )
+
+                // Update the Cat record in the database with the newly generated VIDEO URL
                 await prisma.cat.update({
                     where: { id: cat.id },
-                    data: { imageUrl: generatedImageUrl },
+                    data: { videoUrl: generatedVideoUrl },
                 })
-                console.log(`    Cat record for "${cat.name}" updated with image URL in DB.`)
+                console.log(`    Cat record for "${cat.name}" updated with video URL in DB.`)
 
-                // Add the updated cat object (with its new image URL) to the list of newly unlocked cats
-                newlyUnlockedCats.push({ ...cat, imageUrl: generatedImageUrl })
-            } catch (imgGenError: unknown) {
-                // Catch as unknown for type safety
-                let imgErrorMessage = 'Failed to generate image.'
-                if (imgGenError instanceof Error) {
-                    imgErrorMessage = imgGenError.message
+                newlyUnlockedCats.push({ ...cat, videoUrl: generatedVideoUrl })
+            } catch (genError: unknown) {
+                let errorMessage = 'Failed to generate cat video.'
+                if (genError instanceof Error) {
+                    errorMessage = genError.message
                 } else if (
-                    typeof imgGenError === 'object' &&
-                    imgGenError !== null &&
-                    'message' in imgGenError &&
-                    typeof (imgGenError as any).message === 'string'
+                    typeof genError === 'object' &&
+                    genError !== null &&
+                    'message' in genError &&
+                    typeof (genError as any).message === 'string'
                 ) {
-                    imgErrorMessage = (imgGenError as any).message
+                    errorMessage = (genError as any).message
                 }
                 console.error(
-                    `    ERROR: Failed to generate or save image for "${cat.name}": ${imgErrorMessage}`
+                    `    ERROR: Failed to generate or save video for "${cat.name}": ${errorMessage}`
                 )
-                // If image generation fails, the cat is still considered "unlocked" by criteria,
-                // but its image might be missing. Push the original cat object without the new URL.
-                newlyUnlockedCats.push(cat)
+                newlyUnlockedCats.push(cat) // Push original cat if video gen fails
             }
         } else {
             console.log(`    >>> RESULT: ${cat.name || cat.id} - NOT UNLOCKED <<<`)

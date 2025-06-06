@@ -96,21 +96,17 @@ const CollectionPage: React.FC = () => {
     console.log('CollectionPage: Rendering cat collection with unlocked cats.')
     return (
         <div className="w-full text-center">
-            <h2 className="text-3xl text-pixel-blue-dark mb-4">Your Cat Collection</h2>{' '}
-            {/* Ensure dark text */}
+            <h2 className="text-3xl text-pixel-blue-dark mb-4">Your Cat Collection</h2>
             <p className="text-pixel-blue-dark mb-8">
                 Click on a cat to make it your active companion!
-            </p>{' '}
-            {/* Ensure dark text */}
+            </p>
+
             {error && <p className="text-pixel-red-error mb-4">{error}</p>}
-            {/* Grid container for cat cards */}
+
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-4">
-                {' '}
-                {/* Responsive grid */}
                 {user.unlockedCats.map((cat) => (
                     <div
                         key={cat.id}
-                        // Dynamic styling based on active status and hover/active states
                         className={`pixel-border p-2 bg-pixel-blue-frame cursor-pointer transition-transform duration-200 ease-out
                         ${
                             user.activeCatId === cat.id
@@ -120,8 +116,8 @@ const CollectionPage: React.FC = () => {
                         relative flex flex-col items-center justify-center`}
                         onClick={() => handleSetActive(cat.id)}
                     >
-                        {/* CatDisplay now handles its own sizing */}
-                        <CatDisplay imageUrl={cat.imageUrl} name={cat.name} />
+                        {/* --- CHANGED: Pass videoUrl to CatDisplay --- */}
+                        <CatDisplay videoUrl={cat.videoUrl} name={cat.name} />
 
                         {/* Active/Setting Label */}
                         {user.activeCatId === cat.id && (
@@ -137,6 +133,7 @@ const CollectionPage: React.FC = () => {
                     </div>
                 ))}
             </div>
+
             <PixelButton
                 variant="secondary"
                 onClick={() => router.push('/')}
