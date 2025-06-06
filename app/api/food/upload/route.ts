@@ -4,7 +4,7 @@ import { getToken } from 'next-auth/jwt'
 
 import prisma from '../../../../lib/prisma'
 import { cloudinary } from '../../../../lib/cloudinary'
-import { mockDetectFood } from '../../../../lib/aiService'
+import { detectFoodWithReplicate } from '../../../../lib/aiService'
 import { checkAndUnlockNewCats, getBMICategory } from '../../../../lib/utils' // <--- ADDED getBMICategory here
 
 const secret = process.env.NEXTAUTH_SECRET
@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
 
         const uploadedImageUrl = (uploadResult as any).secure_url
 
-        // 2. Call AI Service for Food Detection (using mock for now)
-        const { detectedFoods, totalCalories } = await mockDetectFood(uploadedImageUrl)
+        // 2. Call AI Service for Food Detection
+        const { detectedFoods, totalCalories } = await detectFoodWithReplicate(uploadedImageUrl)
 
         // 3. Log food entry
         const foodLog = await prisma.foodLogEntry.create({
