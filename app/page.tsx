@@ -1,20 +1,34 @@
 // app/page.tsx
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react' // Added useState
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+
+// Import UI components
 import CatDisplay from '../components/CatDisplay'
 import CalorieBar from '../components/CalorieBar'
 import PixelButton from '../components/PixelButton'
 import LoadingSpinner from '../components/LoadingSpinner'
+import UpdateProfileModal from '../components/UpdateProfileModal' // Import the new modal component
+
+// Import Zustand store for global user state management
 import { useUserStore } from '../store/userStore'
 
 const HomePage: React.FC = () => {
+    // Get session data and status from NextAuth.js
     const { data: session, status } = useSession()
+
+    // Get router instance for navigation
     const router = useRouter()
+
+    // Get user data, loading state, and fetch/update actions from Zustand store
     const { user, isLoading: isUserStoreLoading, fetchUser } = useUserStore()
 
+    // State to control the visibility of the UpdateProfileModal
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+
+    // useEffect hook to handle side effects like data fetching and redirections
     useEffect(() => {
         console.log('HomePage useEffect - Session status:', status)
         console.log('HomePage useEffect - User store user:', user)
@@ -42,6 +56,7 @@ const HomePage: React.FC = () => {
         }
     }, [status, router, user, isUserStoreLoading, fetchUser])
 
+    // Display a loading spinner if NextAuth session is loading OR if user profile data is being fetched
     if (status === 'loading' || isUserStoreLoading) {
         console.log(
             'HomePage: Currently showing LoadingSpinner. Session status:',
@@ -52,37 +67,55 @@ const HomePage: React.FC = () => {
         return <LoadingSpinner />
     }
 
+    // Fallback for cases where session is authenticated but user is null after fetch attempts,
+    // or user exists but without activeCat (should ideally redirect to onboarding via useEffect)
     if (status === 'authenticated' && user && !user.activeCat) {
         console.log(
-            'HomePage: Rendering fallback spinner for authenticated but not onboarded user (should redirect).'
+            'HomePage: Rendering fallback spinner for authenticated but not onboarded user (should have redirected).'
         )
         return <LoadingSpinner />
     }
 
+    // This is a final safeguard. If we reach here and 'user' or 'user.activeCat' is missing,
+    // it implies an unexpected state or a deeper data fetching issue.
     if (!user || !user.activeCat) {
         console.log(
             'HomePage: Render fallback: user or activeCat is missing, but not in initial loading state.'
         )
         return (
-            <p className="text-pixel-blue-text text-center">
+            <p className="text-pixel-blue-dark text-center">
                 No cat found. Something went wrong or onboarding is incomplete.
             </p>
-        ) // Adjusted text color
+        )
     }
 
-    console.log('HomePage: Rendering main content with user and active cat.')
+    // Main Dashboard Content
     return (
         <div className="w-full text-center">
-            <h2 className="text-3xl text-pixel-blue-dark mb-4">Hello, {user.name || 'Trainer'}!</h2>{' '}
-            {/* Adjusted text color */}
-            <CatDisplay imageUrl={user.activeCat.imageUrl} name={user.activeCat.name} />
+            <h2 className="text-3xl text-pixel-blue-dark mb-4">Hello, {user.name || 'Trainer'}!</h2>
+
+            <CatDisplay videoUrl={user.activeCat.videoUrl} name={user.activeCat.name} />
+
             <CalorieBar
                 currentCalories={user.currentCaloriesToday}
                 targetCalories={user.dailyCalorieTarget || 2000}
             />
+
+            {/* Button to open the update profile modal */}
+            <PixelButton
+                variant="secondary"
+                onClick={() => {
+                    console.log('Opening update profile modal. Current user for modal:', user)
+                    setIsUpdateModalOpen(true)
+                }}
+                className="w-full mt-2 mb-4"
+            >
+                Update My Stats
+            </PixelButton>
+
+            {/* Display the Next Unlock Goal information */}
             {user.nextUnlockCat && user.nextUnlockCat.unlockCriteria && (
-                // Adjusted background and text colors
-                <div className="text-pixel-blue-text text-lg mt-4 mb-6 bg-pixel-blue-medium pixel-border p-3">
+                <div className="text-pixel-blue-dark text-lg mt-4 mb-6 bg-pixel-blue-medium pixel-border p-3">
                     <p className="font-bold mb-1">Next Unlock Goal:</p>
                     {(user.nextUnlockCat.unlockCriteria as any).totalCalories && (
                         <p>
@@ -111,13 +144,14 @@ const HomePage: React.FC = () => {
                     )}
                     <p className="text-sm text-pixel-blue-frame mt-2">
                         To unlock: "{user.nextUnlockCat.name}"
-                    </p>{' '}
-                    {/* Adjusted text color */}
+                    </p>
                 </div>
             )}
+
             <PixelButton onClick={() => router.push('/upload')} className="w-full">
                 Upload Food Photo
             </PixelButton>
+
             {user.unlockedCats.length > 1 && (
                 <PixelButton
                     variant="secondary"
@@ -127,6 +161,16 @@ const HomePage: React.FC = () => {
                     My Cat Collection
                 </PixelButton>
             )}
+
+            {/* Modal Component Rendering */}
+            {isUpdateModalOpen &&
+                user && ( // Only render if modal is open and user data is available
+                    <UpdateProfileModal
+                        isOpen={isUpdateModalOpen}
+                        onClose={() => setIsUpdateModalOpen(false)}
+                        currentUser={user} // Pass the current user data to the modal
+                    />
+                )}
         </div>
     )
 }

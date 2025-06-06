@@ -179,9 +179,9 @@ const UnlockedPage: React.FC = () => {
 
             <div className="bg-pixel-dark pixel-border p-4 mb-8">
                 <p className="text-pixel-bg text-xl mb-4">🎉 Amazing! 🎉</p>
-                {newlyUnlockedCat && ( // Ensure newlyUnlockedCat exists before rendering
+                {newlyUnlockedCat && (
                     <CatDisplay
-                        imageUrl={newlyUnlockedCat.imageUrl}
+                        videoUrl={newlyUnlockedCat.videoUrl}
                         name={newlyUnlockedCat.name || 'New Friend'}
                     />
                 )}

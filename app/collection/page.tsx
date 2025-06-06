@@ -121,7 +121,7 @@ const CollectionPage: React.FC = () => {
                         onClick={() => handleSetActive(cat.id)}
                     >
                         {/* CatDisplay now handles its own sizing */}
-                        <CatDisplay imageUrl={cat.imageUrl} name={cat.name} />
+                        <CatDisplay videoUrl={cat.videoUrl} name={cat.name} />
 
                         {/* Active/Setting Label */}
                         {user.activeCatId === cat.id && (
